@@ -60,32 +60,32 @@ export default function App() {
     console.log('Images to upload:', images.map(img => img.file.name));
     
     // In a real app, you would use FormData to send the files.
-    // const formData = new FormData();
-    // formData.append('username', username);
-    // formData.append('password', password);
-    // formData.append('interval', interval);
-    // images.forEach(img => {
-    //   formData.append('images', img.file);
-    // });
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
+    formData.append('interval', interval);
+    images.forEach(img => {
+      formData.append('images', img.file);
+    });
     
     try {
-    const response = await fetch('https://my-uploader-backend.onrender.com', {
-     method: 'POST',
-      body: formData,
+      // IMPORTANT: Replace this URL with your actual Render backend URL
+      const response = await fetch('YOUR_BACKEND_URL/start-automation', {
+        method: 'POST',
+        body: formData,
       });
-     const result = await response.json();
-     setStatus('success');
-      setMessage(result.message);
-     } catch (error) {
-    //   setStatus('error');
-    //   setMessage('Failed to connect to the automation server.');
-    // }
-
-    // --- Simulation ---
-    setTimeout(() => {
-      setStatus('success');
-      setMessage(`Automation started successfully for ${images.length} images! Check your server console.`);
-    }, 2000);
+      const result = await response.json();
+      if(response.ok) {
+        setStatus('success');
+        setMessage(result.message);
+      } else {
+        setStatus('error');
+        setMessage(`Error: ${result.message}`);
+      }
+    } catch (error) {
+      setStatus('error');
+      setMessage('Failed to connect to the automation server. Is it running?');
+    }
   };
 
   return (
