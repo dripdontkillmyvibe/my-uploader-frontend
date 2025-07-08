@@ -68,15 +68,15 @@ export default function App() {
     //   formData.append('images', img.file);
     // });
     
-    // try {
-    //   const response = await fetch('YOUR_BACKEND_URL/start-automation', {
-    //     method: 'POST',
-    //     body: formData,
-    //   });
-    //   const result = await response.json();
-    //   setStatus('success');
-    //   setMessage(result.message);
-    // } catch (error) {
+    try {
+    const response = await fetch('https://my-uploader-backend.onrender.com', {
+     method: 'POST',
+      body: formData,
+      });
+     const result = await response.json();
+     setStatus('success');
+      setMessage(result.message);
+     } catch (error) {
     //   setStatus('error');
     //   setMessage('Failed to connect to the automation server.');
     // }
