@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, ChevronRight, ListVideo } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, ChevronRight, ListVideo, Terminal } from 'lucide-react';
 
 // --- Main App Component ---
 export default function App() {
@@ -10,9 +10,10 @@ export default function App() {
   const [displayOptions, setDisplayOptions] = useState([]);
   const [selectedDisplay, setSelectedDisplay] = useState('');
   const [images, setImages] = useState([]);
-  const [interval, setInterval] = useState(1800);
+  const [interval, setInterval] = useState(30);
   const [status, setStatus] = useState('idle'); // idle, processing, success, error
   const [message, setMessage] = useState('');
+  const [portalLogs, setPortalLogs] = useState([]); // New state for captured logs
   
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -33,16 +34,14 @@ export default function App() {
         body: JSON.stringify({ username, password }),
       });
       const options = await response.json();
-      if (!response.ok) {
-        throw new Error(options.message || 'Failed to fetch.');
-      }
+      if (!response.ok) throw new Error(options.message || 'Failed to fetch.');
       if (options.length === 0) {
         setStatus('error');
         setMessage('No displays found for this user.');
         return;
       }
       setDisplayOptions(options);
-      setSelectedDisplay(options[0].value); // Default to the first option
+      setSelectedDisplay(options[0].value);
       setAppStep('selectDisplay');
       setStatus('idle');
       setMessage('');
@@ -59,7 +58,9 @@ export default function App() {
       return;
     }
     setStatus('processing');
-    setMessage('Sending job to the automation server...');
+    setMessage('Automation in progress... This may take a while.');
+    setPortalLogs([]); // Clear previous logs
+    
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
@@ -76,6 +77,7 @@ export default function App() {
       if (!response.ok) throw new Error(result.message);
       setStatus('success');
       setMessage(result.message);
+      setPortalLogs(result.logs || []); // Set the logs from the response
     } catch (error) {
       setStatus('error');
       setMessage(error.message);
@@ -136,7 +138,7 @@ export default function App() {
         return (
           <>
             <div>
-              <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4"><span className="text-indigo-600 bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center mr-3">2</span>Upload & Set Image Order</h2>
+              <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4"><span className="text-indigo-600 bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center mr-3">2</span>Upload & Order Images</h2>
               <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50 hover:bg-slate-100 transition"><UploadCloud className="mx-auto h-12 w-12 text-slate-400" /><input type="file" multiple onChange={handleFileChange} id="file-upload" className="hidden" accept="image/*" /><label htmlFor="file-upload" className="mt-2 block text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">Click to browse or drag & drop</label></div>
               <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">{images.map((item, index) => (<div key={item.id} draggable onDragStart={() => dragItem.current = index} onDragEnter={() => dragOverItem.current = index} onDragEnd={handleDragSort} onDragOver={(e) => e.preventDefault()} className="flex items-center p-2 bg-white border rounded-lg shadow-sm cursor-grab active:cursor-grabbing"><GripVertical className="w-5 h-5 text-slate-400 mr-2" /><img src={item.preview} alt="preview" className="w-12 h-12 rounded-md object-cover mr-4" /><span className="flex-grow text-sm font-medium text-slate-700 truncate">{item.file.name}</span><button onClick={() => removeImage(item.id)} className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-100 rounded-full"><X className="w-5 h-5" /></button></div>))}</div>
             </div>
@@ -148,6 +150,21 @@ export default function App() {
               {status === 'processing' ? 'Processing...' : 'Start Automation'} <PlayCircle className="ml-2"/>
             </button>
             <button onClick={() => setAppStep('selectDisplay')} className="text-sm text-slate-500 hover:text-indigo-600 text-center w-full">Back to Display Selection</button>
+            
+            {/* --- NEW: Log Viewer --- */}
+            {portalLogs.length > 0 && (
+              <div className="mt-6">
+                <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4"><Terminal className="mr-3 text-slate-500"/>Portal Status Logs</h2>
+                <div className="bg-gray-800 text-white font-mono text-sm rounded-lg p-4 max-h-60 overflow-y-auto space-y-2">
+                  {portalLogs.map((logEntry, index) => (
+                    <div key={index}>
+                      <p className="text-green-400">{'>'} For image: {logEntry.imageName}</p>
+                      <p className="pl-2">{logEntry.log}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         );
       default: return null;
