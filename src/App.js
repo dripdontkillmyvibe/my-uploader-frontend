@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, ChevronRight, ListVideo, Terminal } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, ChevronRight, ListVideo, Terminal, RefreshCw } from 'lucide-react';
 
 // --- Main App Component ---
 export default function App() {
@@ -10,10 +10,11 @@ export default function App() {
   const [displayOptions, setDisplayOptions] = useState([]);
   const [selectedDisplay, setSelectedDisplay] = useState('');
   const [images, setImages] = useState([]);
-  const [interval, setInterval] = useState(30);
+  const [interval, setInterval] = useState(30); // Now in minutes
+  const [cycle, setCycle] = useState(false); // New state for cycling
   const [status, setStatus] = useState('idle'); // idle, processing, success, error
   const [message, setMessage] = useState('');
-  const [portalLogs, setPortalLogs] = useState([]); // New state for captured logs
+  const [portalLogs, setPortalLogs] = useState([]);
   
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -58,14 +59,15 @@ export default function App() {
       return;
     }
     setStatus('processing');
-    setMessage('Automation in progress... This may take a while.');
-    setPortalLogs([]); // Clear previous logs
+    setMessage(cycle ? 'Starting automation in cycle mode...' : 'Automation in progress... This may take a while.');
+    setPortalLogs([]);
     
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
-    formData.append('interval', interval);
+    formData.append('interval', interval * 60); // Convert minutes to seconds for the backend
     formData.append('displayValue', selectedDisplay);
+    formData.append('cycle', cycle); // Send cycle status
     images.forEach(img => formData.append('images', img.file));
     
     try {
@@ -77,7 +79,10 @@ export default function App() {
       if (!response.ok) throw new Error(result.message);
       setStatus('success');
       setMessage(result.message);
-      setPortalLogs(result.logs || []); // Set the logs from the response
+      // Only set logs if they exist in the response (i.e., not in cycle mode)
+      if (result.logs) {
+        setPortalLogs(result.logs);
+      }
     } catch (error) {
       setStatus('error');
       setMessage(error.message);
@@ -144,14 +149,21 @@ export default function App() {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4"><span className="text-indigo-600 bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center mr-3">3</span>Set Upload Interval</h2>
-              <div className="flex items-center space-x-4"><Clock className="w-6 h-6 text-slate-500" /><input type="range" min="5" max="1800" step="5" value={interval} onChange={(e) => setInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" /><span className="font-bold text-indigo-600 text-lg w-28 text-center">{Math.floor(interval / 60)}m {interval % 60}s</span></div>
+              <div className="flex items-center space-x-4">
+                <Clock className="w-6 h-6 text-slate-500" />
+                <input type="range" min="0" max="60" step="5" value={interval} onChange={(e) => setInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
+                <span className="font-bold text-indigo-600 text-lg w-28 text-center">{interval} minutes</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <input type="checkbox" id="cycle" checked={cycle} onChange={(e) => setCycle(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"/>
+              <label htmlFor="cycle" className="ml-2 block text-sm text-gray-900">Cycle images (loop indefinitely)</label>
             </div>
             <button onClick={handleStartAutomation} disabled={status === 'processing'} className="w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center hover:bg-green-700 transition-all disabled:bg-slate-400">
               {status === 'processing' ? 'Processing...' : 'Start Automation'} <PlayCircle className="ml-2"/>
             </button>
             <button onClick={() => setAppStep('selectDisplay')} className="text-sm text-slate-500 hover:text-indigo-600 text-center w-full">Back to Display Selection</button>
             
-            {/* --- NEW: Log Viewer --- */}
             {portalLogs.length > 0 && (
               <div className="mt-6">
                 <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4"><Terminal className="mr-3 text-slate-500"/>Portal Status Logs</h2>
