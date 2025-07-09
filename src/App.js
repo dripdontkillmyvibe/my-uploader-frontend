@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, ChevronRight, ListVideo, Terminal, RefreshCw } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, ChevronRight, ListVideo, Terminal } from 'lucide-react';
 
 // --- Main App Component ---
 export default function App() {
