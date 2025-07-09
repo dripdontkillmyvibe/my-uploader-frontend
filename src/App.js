@@ -51,14 +51,6 @@ export default function App() {
     setStatus('processing');
     setMessage('Preparing to start automation...');
 
-    // This is where you would make the API call to your backend.
-    console.log('--- Starting Automation ---');
-    console.log('Username:', username);
-    console.log('Password:', password);
-    console.log('Interval:', interval, 'seconds');
-    console.log('Images to upload:', images.map(img => img.file.name));
-    
-    // In a real app, you would use FormData to send the files.
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
@@ -68,22 +60,29 @@ export default function App() {
     });
     
     try {
-      // IMPORTANT: Replace this URL with your actual Render backend URL
-      const response = await fetch('https://my-uploader-backend.onrender.com', {
+      // IMPORTANT: Make sure this URL is correct and points to your Render backend.
+      const response = await fetch('https://my-uploader-backend.onrender.com/start-automation', {
         method: 'POST',
         body: formData,
       });
+
       const result = await response.json();
       if(response.ok) {
         setStatus('success');
         setMessage(result.message);
       } else {
         setStatus('error');
-        setMessage(`Error: ${result.message}`);
+        setMessage(`Error from server: ${result.message}`);
       }
     } catch (error) {
+      console.error("Fetch error:", error);
       setStatus('error');
-      setMessage('Failed to connect to the automation server. Is it running?');
+      // Provide a more specific error message for network failures
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        setMessage('Network error: Could not connect to the server. Please check the server URL and ensure the backend is running.');
+      } else {
+        setMessage('An unknown error occurred while connecting to the server.');
+      }
     }
   };
 
