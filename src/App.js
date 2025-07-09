@@ -69,7 +69,7 @@ export default function App() {
     
     try {
       // IMPORTANT: Replace this URL with your actual Render backend URL
-      const response = await fetch('YOUR_BACKEND_URL/start-automation', {
+      const response = await fetch('https://my-uploader-backend.onrender.com', {
         method: 'POST',
         body: formData,
       });
