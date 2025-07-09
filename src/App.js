@@ -10,7 +10,7 @@ export default function App() {
   const [displayOptions, setDisplayOptions] = useState([]);
   const [selectedDisplay, setSelectedDisplay] = useState('');
   const [images, setImages] = useState([]);
-  const [interval, setInterval] = useState(30);
+  const [interval, setInterval] = useState(1800);
   const [status, setStatus] = useState('idle'); // idle, processing, success, error
   const [message, setMessage] = useState('');
   
