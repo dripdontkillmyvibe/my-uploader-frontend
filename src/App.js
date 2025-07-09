@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X } from 'lucide-react';
 
 // --- Main App Component ---
@@ -52,7 +52,6 @@ export default function App() {
     setMessage('Preparing to start automation...');
 
     // This is where you would make the API call to your backend.
-    // We'll simulate it for now.
     console.log('--- Starting Automation ---');
     console.log('Username:', username);
     console.log('Password:', password);
