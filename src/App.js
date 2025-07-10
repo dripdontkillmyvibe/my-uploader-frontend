@@ -286,9 +286,9 @@ export default function App() {
           <p className="text-center text-sm text-slate-500">Enter a username to create or access your automation dashboard.</p>
           <div>
             <label className="font-medium text-slate-700 block mb-1">Your Username</label>
-            <div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/><input type="text" value={inputUser} onChange={e => setInputUser(e.target.value)} className="w-full pl-10 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+            <div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/><input type="text" value={inputUser} onChange={e => setInputUser(e.target.value)} className="w-full pl-10 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-blue"/></div>
           </div>
-          <button onClick={handleDashboardLogin} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center hover:bg-indigo-700">
+          <button onClick={handleDashboardLogin} className="w-full bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center hover:opacity-90">
             <span className="flex items-center justify-center">Login <LogIn className="ml-2 w-5 h-5"/></span>
           </button>
         </div>
@@ -308,7 +308,7 @@ export default function App() {
             <label className="font-medium text-slate-700 block mb-1">Portal Password</label>
             <div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/><input type="password" value={portalPass} onChange={e => setPortalPass(e.target.value)} className="w-full pl-10 p-3 border border-slate-300 rounded-lg"/></div>
           </div>
-          <button onClick={handleSavePortalCredentials} disabled={status === 'processing'} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center hover:bg-indigo-700 disabled:bg-slate-400">
+          <button onClick={handleSavePortalCredentials} disabled={status === 'processing'} className="w-full bg-brand-blue text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center hover:opacity-90 disabled:bg-slate-400">
             <span className="flex items-center justify-center">
               {status === 'processing' ? 'Verifying...' : 'Save & Continue'} <ChevronRight className="ml-2 w-5 h-5"/>
             </span>
@@ -332,7 +332,7 @@ export default function App() {
             <div className="mt-2 text-center">
               {jobStatus && typeof jobStatus.status === 'string' ? (
                 <>
-                  <p className="text-lg font-bold text-indigo-600">{jobStatus.status.toUpperCase()}</p>
+                  <p className={`text-lg font-bold ${jobStatus.status === 'failed' ? 'text-brand-red' : 'text-brand-blue'}`}>{jobStatus.status.toUpperCase()}</p>
                   <p className="text-sm text-slate-600">{String(jobStatus.progress || '')}</p>
                 </>
               ) : (
@@ -341,7 +341,7 @@ export default function App() {
               {isJobActive && (
                 <button
                   onClick={handleStopJob}
-                  className="mt-4 bg-red-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center mx-auto hover:bg-red-700"
+                  className="mt-4 bg-brand-red text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center mx-auto hover:opacity-90"
                 >
                   <StopCircle className="w-5 h-5 mr-2" /> Stop Job
                 </button>
@@ -372,7 +372,7 @@ export default function App() {
 
             <div>
               <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Upload New Images</h2>
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50"><UploadCloud className="mx-auto h-12 w-12 text-slate-400" /><input type="file" multiple onChange={handleFileChange} id="file-upload" className="hidden" /><label htmlFor="file-upload" className={`mt-2 block text-sm font-medium text-indigo-600 ${isJobActive ? 'cursor-not-allowed' : 'cursor-pointer'}`}>Click to browse</label></div>
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50"><UploadCloud className="mx-auto h-12 w-12 text-slate-400" /><input type="file" multiple onChange={handleFileChange} id="file-upload" className="hidden" /><label htmlFor="file-upload" className={`mt-2 block text-sm font-medium text-brand-blue ${isJobActive ? 'cursor-not-allowed' : 'cursor-pointer'}`}>Click to browse</label></div>
               <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                 {images && images.map((item, index) => {
                   if (!item || !item.file) return null;
@@ -381,7 +381,7 @@ export default function App() {
                       <GripVertical className="w-5 h-5 text-slate-400 mr-2" />
                       <img src={item.preview} alt="preview" className="w-12 h-12 rounded-md object-cover mr-4" />
                       <span className="flex-grow text-sm font-medium text-slate-700 truncate">{item.file.name}</span>
-                      <button onClick={() => removeImage(item.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full" disabled={isJobActive}>
+                      <button onClick={() => removeImage(item.id)} className="p-1 text-slate-400 hover:text-brand-red rounded-full" disabled={isJobActive}>
                         <X className="w-5 h-5" />
                       </button>
                     </div>
@@ -395,23 +395,23 @@ export default function App() {
               <div className="flex items-center space-x-4">
                 <Clock className="w-6 h-6 text-slate-500" />
                 <input type="range" min="0" max="60" step="5" value={uploadInterval} onChange={(e) => setUploadInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg disabled:cursor-not-allowed" />
-                <span className="font-bold text-indigo-600 text-lg w-28 text-center">{`${uploadInterval} minutes`}</span>
+                <span className="font-bold text-brand-blue text-lg w-28 text-center">{`${uploadInterval} minutes`}</span>
               </div>
             </div>
 
             <div className="flex items-center justify-center">
-              <input type="checkbox" id="cycle" checked={cycle} onChange={(e) => setCycle(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 disabled:cursor-not-allowed"/>
+              <input type="checkbox" id="cycle" checked={cycle} onChange={(e) => setCycle(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue disabled:cursor-not-allowed"/>
               <label htmlFor="cycle" className="ml-2 block text-sm text-gray-900">Cycle images (loop indefinitely)</label>
             </div>
 
-            <button onClick={handleStartAutomation} disabled={status === 'processing' || isJobActive} className="w-full mt-8 bg-green-600 text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed">
+            <button onClick={handleStartAutomation} disabled={status === 'processing' || isJobActive} className="w-full mt-8 bg-brand-green text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center hover:opacity-90 disabled:bg-slate-400 disabled:cursor-not-allowed">
               <span className="flex items-center justify-center">
                 {status === 'processing' ? 'Submitting...' : 'Create & Start New Job'} <PlayCircle className="ml-2"/>
               </span>
             </button>
           </fieldset>
           
-          {message && (<p className={`text-center mt-4 text-sm font-medium ${status === 'error' ? 'text-red-600' : 'text-green-600'}`}>{message}</p>)}
+          {message && (<p className={`text-center mt-4 text-sm font-medium ${status === 'error' ? 'text-brand-red' : 'text-green-600'}`}>{message}</p>)}
         </div>
       );
     }
