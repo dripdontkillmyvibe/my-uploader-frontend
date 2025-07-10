@@ -53,17 +53,13 @@ export default function App() {
       const options = await response.json();
       if (!response.ok) throw new Error(options.message || 'Failed to fetch.');
       
-      // Defensive check to prevent crash on unexpected API response
-      if (!Array.isArray(options) || options.length === 0) { 
-        setStatus('error'); 
-        setMessage('No displays found for this user. Please check portal credentials.'); 
-        setDisplayOptions([]);
-        return; 
+      if (!Array.isArray(options)) { 
+        throw new Error('Received unexpected data from server.');
       }
       
       setDisplayOptions(options);
-      // Safely select the first display
-      if (options[0] && options[0].value) {
+      
+      if (options.length > 0 && options[0].value) {
         await handleSelectDisplay(options[0].value, user, pass);
       }
       
@@ -72,7 +68,6 @@ export default function App() {
         localStorage.setItem(`${dashboardUser}_portalPass`, pass);
       }
       
-      // Only proceed to dashboard after everything is fetched
       setAppStep('dashboard');
       setStatus('idle');
       setMessage('');
@@ -80,10 +75,14 @@ export default function App() {
     } catch (error) {
       setStatus('error');
       setMessage(error.message);
+      // If fetching fails during setup, stay on the setup screen
+      if (!saveCredentials) {
+        setAppStep('portalSetup');
+      }
     }
   }, [dashboardUser, handleSelectDisplay]);
 
-  // Combined useEffect for initialization
+  // Effect to handle initial user login from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem('dashboardUser');
     if (storedUser) {
@@ -93,18 +92,25 @@ export default function App() {
       if (storedPortalUser && storedPortalPass) {
         setPortalUser(storedPortalUser);
         setPortalPass(storedPortalPass);
-        // Directly fetch displays and let that function handle moving to the dashboard
-        handleFetchDisplays(storedPortalUser, storedPortalPass);
+        setAppStep('dashboard'); // Go to dashboard, the next effect will fetch data
       } else {
         setAppStep('portalSetup');
       }
     }
+  }, []);
+
+  // Effect to fetch displays ONLY when the dashboard becomes active
+  useEffect(() => {
+    if (appStep === 'dashboard' && portalUser && portalPass) {
+      handleFetchDisplays(portalUser, portalPass);
+    }
+  // This dependency array is correct. It runs when the app is ready for the dashboard.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // This should only run once on mount
+  }, [appStep]);
 
   // Effect to poll for job status
   useEffect(() => {
-    if (appStep !== 'dashboard') return;
+    if (appStep !== 'dashboard' || !dashboardUser) return;
     const fetchStatus = async () => {
       try {
         const response = await fetch(`https://my-uploader-backend.onrender.com/job-status/${dashboardUser}`);
@@ -253,7 +259,7 @@ export default function App() {
           <div className="p-4 border rounded-lg bg-slate-50">
             <h2 className="font-semibold text-slate-700 flex items-center"><Activity className="w-5 h-5 mr-2 text-slate-500"/>Current Job Status</h2>
             <div className="mt-2 text-center">
-              {jobStatus ? (<><p className="text-lg font-bold text-indigo-600">{jobStatus.status.toUpperCase()}</p><p className="text-sm text-slate-600">{jobStatus.progress}</p></>) : (<p className="text-slate-500">No active job found.</p>)}
+              {jobStatus && jobStatus.status ? (<><p className="text-lg font-bold text-indigo-600">{jobStatus.status.toUpperCase()}</p><p className="text-sm text-slate-600">{jobStatus.progress}</p></>) : (<p className="text-slate-500">No active job found.</p>)}
             </div>
           </div>
 
