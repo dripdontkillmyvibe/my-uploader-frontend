@@ -231,7 +231,7 @@ export default function App() {
 
       const newImages = files.map(file => ({
         file,
-        id: `${file.name}-${file.lastModified}-${file.size}`,
+        id: crypto.randomUUID(), // Use a truly unique ID to be safe
         preview: URL.createObjectURL(file)
       }));
       setImages(prev => [...prev, ...newImages]);
@@ -274,7 +274,7 @@ export default function App() {
             <div className="relative"><User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/><input type="text" value={inputUser} onChange={e => setInputUser(e.target.value)} className="w-full pl-10 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
           </div>
           <button onClick={handleDashboardLogin} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center hover:bg-indigo-700">
-            Login <LogIn className="ml-2 w-5 h-5"/>
+            <span className="flex items-center justify-center">Login <LogIn className="ml-2 w-5 h-5"/></span>
           </button>
         </div>
       );
@@ -294,7 +294,9 @@ export default function App() {
             <div className="relative"><KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/><input type="password" value={portalPass} onChange={e => setPortalPass(e.target.value)} className="w-full pl-10 p-3 border border-slate-300 rounded-lg"/></div>
           </div>
           <button onClick={handleSavePortalCredentials} disabled={status === 'processing'} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center hover:bg-indigo-700 disabled:bg-slate-400">
-            {status === 'processing' ? 'Verifying...' : 'Save & Continue'} <ChevronRight className="ml-2 w-5 h-5"/>
+            <span className="flex items-center justify-center">
+              {status === 'processing' ? 'Verifying...' : 'Save & Continue'} <ChevronRight className="ml-2 w-5 h-5"/>
+            </span>
           </button>
           {message && <p className="text-center text-sm font-medium text-red-600">{message}</p>}
         </div>
@@ -312,11 +314,11 @@ export default function App() {
           <div className="p-4 border rounded-lg bg-slate-50">
             <h2 className="font-semibold text-slate-700 flex items-center"><Activity className="w-5 h-5 mr-2 text-slate-500"/>Current Job Status</h2>
             <div className="mt-2 text-center">
-              {/* This JSX is now crash-proof */}
               {jobStatus && typeof jobStatus.status === 'string' ? (
                 <>
                   <p className="text-lg font-bold text-indigo-600">{jobStatus.status.toUpperCase()}</p>
-                  <p className="text-sm text-slate-600">{jobStatus.progress || ''}</p>
+                  {/* FIX: Explicitly cast progress to a string to be safe */}
+                  <p className="text-sm text-slate-600">{String(jobStatus.progress || '')}</p>
                 </>
               ) : (
                 <p className="text-slate-500">No active job found.</p>
@@ -345,7 +347,7 @@ export default function App() {
                 {images && images.map((item, index) => {
                   if (!item || !item.file) return null;
                   return (
-                    <div key={item.id || index} draggable onDragStart={() => (dragItem.current = index)} onDragEnter={() => (dragOverItem.current = index)} onDragEnd={handleDragSort} onDragOver={(e) => e.preventDefault()} className="flex items-center p-2 bg-white border rounded-lg shadow-sm cursor-grab">
+                    <div key={item.id} draggable onDragStart={() => (dragItem.current = index)} onDragEnter={() => (dragOverItem.current = index)} onDragEnd={handleDragSort} onDragOver={(e) => e.preventDefault()} className="flex items-center p-2 bg-white border rounded-lg shadow-sm cursor-grab">
                       <GripVertical className="w-5 h-5 text-slate-400 mr-2" />
                       <img src={item.preview} alt="preview" className="w-12 h-12 rounded-md object-cover mr-4" />
                       <span className="flex-grow text-sm font-medium text-slate-700 truncate">{item.file.name}</span>
@@ -358,7 +360,8 @@ export default function App() {
 
             <div>
               <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Set Upload Interval</h2>
-              <div className="flex items-center space-x-4"><Clock className="w-6 h-6 text-slate-500" /><input type="range" min="0" max="60" step="5" value={interval} onChange={(e) => setInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" /><span className="font-bold text-indigo-600 text-lg w-28 text-center">{interval} minutes</span></div>
+              {/* FIX: Combine interval and text into a single string expression */}
+              <div className="flex items-center space-x-4"><Clock className="w-6 h-6 text-slate-500" /><input type="range" min="0" max="60" step="5" value={interval} onChange={(e) => setInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" /><span className="font-bold text-indigo-600 text-lg w-28 text-center">{`${interval} minutes`}</span></div>
             </div>
 
             <div className="flex items-center justify-center">
@@ -367,7 +370,10 @@ export default function App() {
             </div>
 
             <button onClick={handleStartAutomation} disabled={status === 'processing'} className="w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center hover:bg-green-700 disabled:bg-slate-400">
-              {status === 'processing' ? 'Submitting...' : 'Create & Start New Job'} <PlayCircle className="ml-2"/>
+              {/* FIX: Wrap button children in a single element */}
+              <span className="flex items-center justify-center">
+                {status === 'processing' ? 'Submitting...' : 'Create & Start New Job'} <PlayCircle className="ml-2"/>
+              </span>
             </button>
           </>
           ) : null}
