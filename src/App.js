@@ -74,7 +74,7 @@ export default function App() {
     }
   }, [handleSelectDisplay]);
 
-  // Combined useEffect for initialization
+  // Combined useEffect for initialization - THIS IS THE CORE FIX
   useEffect(() => {
     const initializeApp = async () => {
       const storedUser = localStorage.getItem('dashboardUser');
@@ -86,6 +86,7 @@ export default function App() {
         if (storedPortalUser && storedPortalPass) {
           setPortalUser(storedPortalUser);
           setPortalPass(storedPortalPass);
+          // Await the result of the fetch before changing the app step
           const success = await handleFetchDisplays(storedPortalUser, storedPortalPass);
           if (success) {
             setAppStep('dashboard');
