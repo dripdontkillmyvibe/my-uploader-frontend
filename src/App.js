@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight } from 'lucide-react';
 
 // --- Main App Component ---
@@ -58,32 +58,22 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, [appStep, dashboardUser]);
 
-  // Effect to fetch displays when dashboard loads
-  useEffect(() => {
-    if (appStep === 'dashboard') {
-      handleFetchDisplays(portalUser, portalPass);
-    }
-  }, [appStep, portalUser, portalPass]);
+  const handleSelectDisplay = useCallback(async (displayValue, user, pass) => {
+    setSelectedDisplay(displayValue);
+    setCurrentImageUrl(null);
+    if (!displayValue) return;
+    try {
+        const response = await fetch('https://my-uploader-backend.onrender.com/fetch-display-details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, password: pass, displayValue }),
+        });
+        const data = await response.json();
+        if (data.imageUrl) setCurrentImageUrl(data.imageUrl);
+    } catch (error) { console.error("Could not fetch display image", error); }
+  }, []);
 
-
-  const handleDashboardLogin = () => {
-    if (inputUser) {
-      localStorage.setItem('dashboardUser', inputUser);
-      setDashboardUser(inputUser);
-      setAppStep('portalSetup');
-    }
-  };
-
-  const handleSavePortalCredentials = async () => {
-    if (!portalUser || !portalPass) {
-      setStatus('error');
-      setMessage('Please enter portal credentials.');
-      return;
-    }
-    await handleFetchDisplays(portalUser, portalPass, true);
-  };
-
-  const handleFetchDisplays = async (user, pass, saveCredentials = false) => {
+  const handleFetchDisplays = useCallback(async (user, pass, saveCredentials = false) => {
     setStatus('processing');
     setMessage('Logging in and fetching your displays...');
     try {
@@ -110,21 +100,31 @@ export default function App() {
       setStatus('error');
       setMessage(error.message);
     }
+  }, [dashboardUser, handleSelectDisplay]);
+
+  // Effect to fetch displays when dashboard loads
+  useEffect(() => {
+    if (appStep === 'dashboard' && portalUser && portalPass) {
+      handleFetchDisplays(portalUser, portalPass);
+    }
+  }, [appStep, portalUser, portalPass, handleFetchDisplays]);
+
+
+  const handleDashboardLogin = () => {
+    if (inputUser) {
+      localStorage.setItem('dashboardUser', inputUser);
+      setDashboardUser(inputUser);
+      setAppStep('portalSetup');
+    }
   };
 
-  const handleSelectDisplay = async (displayValue, user, pass) => {
-    setSelectedDisplay(displayValue);
-    setCurrentImageUrl(null);
-    if (!displayValue) return;
-    try {
-        const response = await fetch('https://my-uploader-backend.onrender.com/fetch-display-details', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: user, password: pass, displayValue }),
-        });
-        const data = await response.json();
-        if (data.imageUrl) setCurrentImageUrl(data.imageUrl);
-    } catch (error) { console.error("Could not fetch display image", error); }
+  const handleSavePortalCredentials = async () => {
+    if (!portalUser || !portalPass) {
+      setStatus('error');
+      setMessage('Please enter portal credentials.');
+      return;
+    }
+    await handleFetchDisplays(portalUser, portalPass, true);
   };
 
   const handleStartAutomation = async () => {
