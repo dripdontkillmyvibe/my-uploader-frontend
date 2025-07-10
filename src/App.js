@@ -26,38 +26,6 @@ export default function App() {
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
-  // Check for logged-in user on initial load
-  useEffect(() => {
-    const storedUser = localStorage.getItem('dashboardUser');
-    if (storedUser) {
-      setDashboardUser(storedUser);
-      const storedPortalUser = localStorage.getItem(`${storedUser}_portalUser`);
-      const storedPortalPass = localStorage.getItem(`${storedUser}_portalPass`);
-      if (storedPortalUser && storedPortalPass) {
-        setPortalUser(storedPortalUser);
-        setPortalPass(storedPortalPass);
-        setAppStep('dashboard');
-      } else {
-        setAppStep('portalSetup');
-      }
-    }
-  }, []);
-
-  // Effect to poll for job status
-  useEffect(() => {
-    if (appStep !== 'dashboard') return;
-    const fetchStatus = async () => {
-      try {
-        const response = await fetch(`https://my-uploader-backend.onrender.com/job-status/${dashboardUser}`);
-        if(response.ok) setJobStatus(await response.json());
-        else setJobStatus(null);
-      } catch (error) { console.error("Failed to fetch job status", error); }
-    };
-    fetchStatus();
-    const intervalId = setInterval(fetchStatus, 10000);
-    return () => clearInterval(intervalId);
-  }, [appStep, dashboardUser]);
-
   const handleSelectDisplay = useCallback(async (displayValue, user, pass) => {
     setSelectedDisplay(displayValue);
     setCurrentImageUrl(null);
@@ -101,6 +69,38 @@ export default function App() {
       setMessage(error.message);
     }
   }, [dashboardUser, handleSelectDisplay]);
+
+  // Check for logged-in user on initial load
+  useEffect(() => {
+    const storedUser = localStorage.getItem('dashboardUser');
+    if (storedUser) {
+      setDashboardUser(storedUser);
+      const storedPortalUser = localStorage.getItem(`${storedUser}_portalUser`);
+      const storedPortalPass = localStorage.getItem(`${storedUser}_portalPass`);
+      if (storedPortalUser && storedPortalPass) {
+        setPortalUser(storedPortalUser);
+        setPortalPass(storedPortalPass);
+        setAppStep('dashboard');
+      } else {
+        setAppStep('portalSetup');
+      }
+    }
+  }, []);
+
+  // Effect to poll for job status
+  useEffect(() => {
+    if (appStep !== 'dashboard') return;
+    const fetchStatus = async () => {
+      try {
+        const response = await fetch(`https://my-uploader-backend.onrender.com/job-status/${dashboardUser}`);
+        if(response.ok) setJobStatus(await response.json());
+        else setJobStatus(null);
+      } catch (error) { console.error("Failed to fetch job status", error); }
+    };
+    fetchStatus();
+    const intervalId = setInterval(fetchStatus, 10000);
+    return () => clearInterval(intervalId);
+  }, [appStep, dashboardUser]);
 
   // Effect to fetch displays when dashboard loads
   useEffect(() => {
