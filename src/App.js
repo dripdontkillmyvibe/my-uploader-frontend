@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Server, Activity, Hourglass } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity } from 'lucide-react';
 
 // --- Main App Component ---
 export default function App() {
