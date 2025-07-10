@@ -64,10 +64,12 @@ export default function App() {
       }
       
       if (saveCredentials) {
+        // This logic is now part of the initial useEffect
         localStorage.setItem(`${dashboardUser}_portalUser`, user);
         localStorage.setItem(`${dashboardUser}_portalPass`, pass);
       }
       
+      // Only proceed to dashboard after everything is fetched
       setAppStep('dashboard');
       setStatus('idle');
       setMessage('');
@@ -76,13 +78,13 @@ export default function App() {
       setStatus('error');
       setMessage(error.message);
       // If fetching fails during setup, stay on the setup screen
-      if (!saveCredentials) {
+      if (saveCredentials) {
         setAppStep('portalSetup');
       }
     }
   }, [dashboardUser, handleSelectDisplay]);
 
-  // Effect to handle initial user login from localStorage
+  // Combined useEffect for initialization
   useEffect(() => {
     const storedUser = localStorage.getItem('dashboardUser');
     if (storedUser) {
@@ -92,21 +94,14 @@ export default function App() {
       if (storedPortalUser && storedPortalPass) {
         setPortalUser(storedPortalUser);
         setPortalPass(storedPortalPass);
-        setAppStep('dashboard'); // Go to dashboard, the next effect will fetch data
+        // Directly fetch displays and let that function handle moving to the dashboard
+        handleFetchDisplays(storedPortalUser, storedPortalPass);
       } else {
         setAppStep('portalSetup');
       }
     }
-  }, []);
-
-  // Effect to fetch displays ONLY when the dashboard becomes active
-  useEffect(() => {
-    if (appStep === 'dashboard' && portalUser && portalPass) {
-      handleFetchDisplays(portalUser, portalPass);
-    }
-  // This dependency array is correct. It runs when the app is ready for the dashboard.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appStep]);
+  }, []); // This should only run once on mount
 
   // Effect to poll for job status
   useEffect(() => {
@@ -227,7 +222,7 @@ export default function App() {
       );
     }
 
-    if (appStep === 'portalSetup') {
+    if (appStep === 'portalSetup' || (appStep === 'dashboard' && status === 'processing')) {
       return (
         <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-6">
           <h1 className="text-2xl font-bold text-center text-slate-800">Portal Setup</h1>
