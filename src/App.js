@@ -158,7 +158,7 @@ export default function App() {
       } catch (error) { console.error("Failed to fetch job status", error); }
     };
     fetchStatus();
-    const intervalId = setInterval(fetchStatus, 10000);
+    const intervalId = setInterval(fetchStatus, 5000); // Poll more frequently for logs
     return () => clearInterval(intervalId);
   }, [appStep, dashboardUser]);
 
@@ -204,7 +204,7 @@ export default function App() {
     formData.append('userId', dashboardUser);
     formData.append('portalUser', portalUser);
     formData.append('portalPass', portalPass);
-    formData.append('interval', interval * 60);
+    formData.append('interval', interval); // Send minutes directly
     formData.append('cycle', cycle);
     formData.append('displayValue', selectedDisplay);
     images.forEach(img => formData.append('images', img.file));
@@ -317,7 +317,6 @@ export default function App() {
               {jobStatus && typeof jobStatus.status === 'string' ? (
                 <>
                   <p className="text-lg font-bold text-indigo-600">{jobStatus.status.toUpperCase()}</p>
-                  {/* FIX: Explicitly cast progress to a string to be safe */}
                   <p className="text-sm text-slate-600">{String(jobStatus.progress || '')}</p>
                 </>
               ) : (
@@ -325,6 +324,15 @@ export default function App() {
               )}
             </div>
           </div>
+
+          {/* NEW: Portal Status Log */}
+          {jobStatus && jobStatus.logs && (
+            <div className="p-4 border rounded-lg bg-gray-800 text-white font-mono text-xs">
+                <h3 className="font-sans font-semibold text-slate-300 flex items-center mb-2"><ListVideo className="w-5 h-5 mr-2 text-slate-400"/>Portal Status Log</h3>
+                <div className="p-2 bg-black rounded max-h-40 overflow-y-auto" dangerouslySetInnerHTML={{ __html: jobStatus.logs }}>
+                </div>
+            </div>
+          )}
 
           {(!jobStatus || jobStatus.status === 'completed' || jobStatus.status === 'failed') ? (
           <>
@@ -360,7 +368,6 @@ export default function App() {
 
             <div>
               <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Set Upload Interval</h2>
-              {/* FIX: Combine interval and text into a single string expression */}
               <div className="flex items-center space-x-4"><Clock className="w-6 h-6 text-slate-500" /><input type="range" min="0" max="60" step="5" value={interval} onChange={(e) => setInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" /><span className="font-bold text-indigo-600 text-lg w-28 text-center">{`${interval} minutes`}</span></div>
             </div>
 
@@ -370,7 +377,6 @@ export default function App() {
             </div>
 
             <button onClick={handleStartAutomation} disabled={status === 'processing'} className="w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center hover:bg-green-700 disabled:bg-slate-400">
-              {/* FIX: Wrap button children in a single element */}
               <span className="flex items-center justify-center">
                 {status === 'processing' ? 'Submitting...' : 'Create & Start New Job'} <PlayCircle className="ml-2"/>
               </span>
