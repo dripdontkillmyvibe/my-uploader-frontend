@@ -30,9 +30,11 @@ class ErrorBoundary extends React.Component {
             <p className="text-slate-600">Something went wrong. Please copy the details below and report this issue.</p>
             <details className="p-4 bg-slate-100 rounded-lg text-left text-sm font-mono overflow-auto">
                 <summary className="cursor-pointer font-sans font-bold">Error Details</summary>
-                {this.state.error && this.state.error.toString()}
-                <br />
-                {this.state.errorInfo && this.state.errorInfo.componentStack}
+                <pre>
+                    {this.state.error && this.state.error.toString()}
+                    <br />
+                    {this.state.errorInfo && this.state.errorInfo.componentStack}
+                </pre>
             </details>
         </div>
       );
