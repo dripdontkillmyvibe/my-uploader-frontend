@@ -26,45 +26,6 @@ export default function App() {
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
-  // Check for logged-in user on initial load
-  useEffect(() => {
-    const storedUser = localStorage.getItem('dashboardUser');
-    if (storedUser) {
-      setDashboardUser(storedUser);
-      const storedPortalUser = localStorage.getItem(`${storedUser}_portalUser`);
-      const storedPortalPass = localStorage.getItem(`${storedUser}_portalPass`);
-      if (storedPortalUser && storedPortalPass) {
-        setPortalUser(storedPortalUser);
-        setPortalPass(storedPortalPass);
-        setAppStep('dashboard');
-      } else {
-        setAppStep('portalSetup');
-      }
-    }
-  }, []);
-
-  // Effect to poll for job status
-  useEffect(() => {
-    if (appStep !== 'dashboard') return;
-    const fetchStatus = async () => {
-      try {
-        const response = await fetch(`https://my-uploader-backend.onrender.com/job-status/${dashboardUser}`);
-        if(response.ok) setJobStatus(await response.json());
-        else setJobStatus(null);
-      } catch (error) { console.error("Failed to fetch job status", error); }
-    };
-    fetchStatus();
-    const intervalId = setInterval(fetchStatus, 10000);
-    return () => clearInterval(intervalId);
-  }, [appStep, dashboardUser]);
-
-  // Effect to clean up image preview URLs to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      images.forEach(image => URL.revokeObjectURL(image.preview));
-    };
-  }, [images]);
-
   const handleSelectDisplay = useCallback(async (displayValue, user, pass) => {
     setSelectedDisplay(displayValue);
     setCurrentImageUrl(null);
@@ -97,8 +58,9 @@ export default function App() {
       await handleSelectDisplay(options[0].value, user, pass);
       
       if (saveCredentials) {
-        localStorage.setItem(`${dashboardUser}_portalUser`, user);
-        localStorage.setItem(`${dashboardUser}_portalPass`, pass);
+        const currentUser = localStorage.getItem('dashboardUser');
+        localStorage.setItem(`${currentUser}_portalUser`, user);
+        localStorage.setItem(`${currentUser}_portalPass`, pass);
         setAppStep('dashboard');
       }
       setStatus('idle');
@@ -107,15 +69,49 @@ export default function App() {
       setStatus('error');
       setMessage(error.message);
     }
-  }, [dashboardUser, handleSelectDisplay]);
+  }, [handleSelectDisplay]);
 
-  // Effect to fetch displays when dashboard loads
+  // Check for logged-in user on initial load
   useEffect(() => {
-    if (appStep === 'dashboard' && portalUser && portalPass) {
-      handleFetchDisplays(portalUser, portalPass);
+    const storedUser = localStorage.getItem('dashboardUser');
+    if (storedUser) {
+      setDashboardUser(storedUser);
+      const storedPortalUser = localStorage.getItem(`${storedUser}_portalUser`);
+      const storedPortalPass = localStorage.getItem(`${storedUser}_portalPass`);
+      if (storedPortalUser && storedPortalPass) {
+        setPortalUser(storedPortalUser);
+        setPortalPass(storedPortalPass);
+        // Directly fetch displays now that we have credentials
+        handleFetchDisplays(storedPortalUser, storedPortalPass);
+        setAppStep('dashboard');
+      } else {
+        setAppStep('portalSetup');
+      }
     }
-  }, [appStep, portalUser, portalPass, handleFetchDisplays]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // This effect should only run once on mount
 
+  // Effect to poll for job status
+  useEffect(() => {
+    if (appStep !== 'dashboard') return;
+    const fetchStatus = async () => {
+      try {
+        const response = await fetch(`https://my-uploader-backend.onrender.com/job-status/${dashboardUser}`);
+        if(response.ok) setJobStatus(await response.json());
+        else setJobStatus(null);
+      } catch (error) { console.error("Failed to fetch job status", error); }
+    };
+    fetchStatus();
+    const intervalId = setInterval(fetchStatus, 10000);
+    return () => clearInterval(intervalId);
+  }, [appStep, dashboardUser]);
+
+  // Effect to clean up image preview URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      images.forEach(image => URL.revokeObjectURL(image.preview));
+    };
+  }, [images]);
 
   const handleDashboardLogin = () => {
     if (inputUser) {
