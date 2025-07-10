@@ -58,9 +58,9 @@ export default function App() {
       await handleSelectDisplay(options[0].value, user, pass);
       
       if (saveCredentials) {
-        const currentUser = localStorage.getItem('dashboardUser');
-        localStorage.setItem(`${currentUser}_portalUser`, user);
-        localStorage.setItem(`${currentUser}_portalPass`, pass);
+        // This logic is now part of the initial useEffect
+        localStorage.setItem(`${dashboardUser}_portalUser`, user);
+        localStorage.setItem(`${dashboardUser}_portalPass`, pass);
         setAppStep('dashboard');
       }
       setStatus('idle');
@@ -69,7 +69,7 @@ export default function App() {
       setStatus('error');
       setMessage(error.message);
     }
-  }, [handleSelectDisplay]);
+  }, [dashboardUser, handleSelectDisplay]);
 
   // Check for logged-in user on initial load
   useEffect(() => {
@@ -81,15 +81,20 @@ export default function App() {
       if (storedPortalUser && storedPortalPass) {
         setPortalUser(storedPortalUser);
         setPortalPass(storedPortalPass);
-        // Directly fetch displays now that we have credentials
-        handleFetchDisplays(storedPortalUser, storedPortalPass);
+        // Set the step to dashboard. The other useEffect will handle the data fetch.
         setAppStep('dashboard');
       } else {
         setAppStep('portalSetup');
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // This effect should only run once on mount
+  }, []);
+
+  // Effect to fetch displays when the dashboard becomes active
+  useEffect(() => {
+    if (appStep === 'dashboard' && portalUser && portalPass) {
+      handleFetchDisplays(portalUser, portalPass);
+    }
+  }, [appStep, portalUser, portalPass, handleFetchDisplays]);
 
   // Effect to poll for job status
   useEffect(() => {
@@ -127,6 +132,7 @@ export default function App() {
       setMessage('Please enter portal credentials.');
       return;
     }
+    // Pass 'true' to indicate that credentials should be saved after successful fetch
     await handleFetchDisplays(portalUser, portalPass, true);
   };
 
