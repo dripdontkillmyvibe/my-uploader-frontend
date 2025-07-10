@@ -26,6 +26,45 @@ export default function App() {
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
+  // Check for logged-in user on initial load
+  useEffect(() => {
+    const storedUser = localStorage.getItem('dashboardUser');
+    if (storedUser) {
+      setDashboardUser(storedUser);
+      const storedPortalUser = localStorage.getItem(`${storedUser}_portalUser`);
+      const storedPortalPass = localStorage.getItem(`${storedUser}_portalPass`);
+      if (storedPortalUser && storedPortalPass) {
+        setPortalUser(storedPortalUser);
+        setPortalPass(storedPortalPass);
+        setAppStep('dashboard');
+      } else {
+        setAppStep('portalSetup');
+      }
+    }
+  }, []);
+
+  // Effect to poll for job status
+  useEffect(() => {
+    if (appStep !== 'dashboard') return;
+    const fetchStatus = async () => {
+      try {
+        const response = await fetch(`https://my-uploader-backend.onrender.com/job-status/${dashboardUser}`);
+        if(response.ok) setJobStatus(await response.json());
+        else setJobStatus(null);
+      } catch (error) { console.error("Failed to fetch job status", error); }
+    };
+    fetchStatus();
+    const intervalId = setInterval(fetchStatus, 10000);
+    return () => clearInterval(intervalId);
+  }, [appStep, dashboardUser]);
+
+  // Effect to clean up image preview URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      images.forEach(image => URL.revokeObjectURL(image.preview));
+    };
+  }, [images]);
+
   const handleSelectDisplay = useCallback(async (displayValue, user, pass) => {
     setSelectedDisplay(displayValue);
     setCurrentImageUrl(null);
@@ -69,38 +108,6 @@ export default function App() {
       setMessage(error.message);
     }
   }, [dashboardUser, handleSelectDisplay]);
-
-  // Check for logged-in user on initial load
-  useEffect(() => {
-    const storedUser = localStorage.getItem('dashboardUser');
-    if (storedUser) {
-      setDashboardUser(storedUser);
-      const storedPortalUser = localStorage.getItem(`${storedUser}_portalUser`);
-      const storedPortalPass = localStorage.getItem(`${storedUser}_portalPass`);
-      if (storedPortalUser && storedPortalPass) {
-        setPortalUser(storedPortalUser);
-        setPortalPass(storedPortalPass);
-        setAppStep('dashboard');
-      } else {
-        setAppStep('portalSetup');
-      }
-    }
-  }, []);
-
-  // Effect to poll for job status
-  useEffect(() => {
-    if (appStep !== 'dashboard') return;
-    const fetchStatus = async () => {
-      try {
-        const response = await fetch(`https://my-uploader-backend.onrender.com/job-status/${dashboardUser}`);
-        if(response.ok) setJobStatus(await response.json());
-        else setJobStatus(null);
-      } catch (error) { console.error("Failed to fetch job status", error); }
-    };
-    fetchStatus();
-    const intervalId = setInterval(fetchStatus, 10000);
-    return () => clearInterval(intervalId);
-  }, [appStep, dashboardUser]);
 
   // Effect to fetch displays when dashboard loads
   useEffect(() => {
@@ -161,9 +168,21 @@ export default function App() {
   };
 
   const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    const newImages = files.map(file => ({ file, id: Math.random().toString(36).substring(2, 9), preview: URL.createObjectURL(file) }));
-    setImages(prev => [...prev, ...newImages]);
+    try {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      const newImages = files.map(file => ({
+        file,
+        id: `${file.name}-${file.lastModified}-${file.size}`, // More stable ID
+        preview: URL.createObjectURL(file)
+      }));
+      setImages(prev => [...prev, ...newImages]);
+    } catch (error) {
+      console.error("Error handling file change:", error);
+      setStatus('error');
+      setMessage('There was an error processing the selected files.');
+    }
   };
 
   const removeImage = (id) => setImages(prev => prev.filter(image => image.id !== id));
@@ -171,6 +190,7 @@ export default function App() {
   const handleDragSort = () => {
     let _images = [...images];
     const draggedItemContent = _images.splice(dragItem.current, 1)[0];
+    if (!draggedItemContent) return;
     _images.splice(dragOverItem.current, 0, draggedItemContent);
     dragItem.current = null;
     dragOverItem.current = null;
@@ -247,7 +267,19 @@ export default function App() {
             <div>
               <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Upload New Images</h2>
               <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50"><UploadCloud className="mx-auto h-12 w-12 text-slate-400" /><input type="file" multiple onChange={handleFileChange} id="file-upload" className="hidden" accept="image/*" /><label htmlFor="file-upload" className="mt-2 block text-sm font-medium text-indigo-600 cursor-pointer">Click to browse</label></div>
-              <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">{images.map((item, index) => (<div key={item.id} draggable onDragStart={() => (dragItem.current = index)} onDragEnter={() => (dragOverItem.current = index)} onDragEnd={handleDragSort} onDragOver={(e) => e.preventDefault()} className="flex items-center p-2 bg-white border rounded-lg shadow-sm cursor-grab"><GripVertical className="w-5 h-5 text-slate-400 mr-2" /><img src={item.preview} alt="preview" className="w-12 h-12 rounded-md object-cover mr-4" /><span className="flex-grow text-sm font-medium text-slate-700 truncate">{item.file.name}</span><button onClick={() => removeImage(item.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full"><X className="w-5 h-5" /></button></div>))}</div>
+              <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
+                {images && images.map((item, index) => {
+                  if (!item || !item.file) return null; // Guard clause to prevent rendering errors
+                  return (
+                    <div key={item.id || index} draggable onDragStart={() => (dragItem.current = index)} onDragEnter={() => (dragOverItem.current = index)} onDragEnd={handleDragSort} onDragOver={(e) => e.preventDefault()} className="flex items-center p-2 bg-white border rounded-lg shadow-sm cursor-grab">
+                      <GripVertical className="w-5 h-5 text-slate-400 mr-2" />
+                      <img src={item.preview} alt="preview" className="w-12 h-12 rounded-md object-cover mr-4" />
+                      <span className="flex-grow text-sm font-medium text-slate-700 truncate">{item.file.name}</span>
+                      <button onClick={() => removeImage(item.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full"><X className="w-5 h-5" /></button>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             <div>
