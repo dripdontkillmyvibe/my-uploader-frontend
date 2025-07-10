@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2, AlertTriangle, StopCircle } from 'lucide-react';
 
 // --- Error Boundary Component ---
-// This component will catch JavaScript errors anywhere in its child component tree.
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -10,19 +9,16 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI.
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
-    // You can also log the error to an error reporting service
     console.error("Uncaught error:", error, errorInfo);
     this.setState({ error: error, errorInfo: errorInfo });
   }
 
   render() {
     if (this.state.hasError) {
-      // You can render any custom fallback UI
       return (
         <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-4 text-center">
             <AlertTriangle className="mx-auto h-16 w-16 text-red-500" />
@@ -60,7 +56,6 @@ export default function App() {
   const [currentImageUrl, setCurrentImageUrl] = useState(null);
 
   const [images, setImages] = useState([]);
-  // FIX: Renamed state to avoid collision with window.setInterval
   const [uploadInterval, setUploadInterval] = useState(30);
   const [cycle, setCycle] = useState(false);
   
@@ -205,7 +200,7 @@ export default function App() {
     formData.append('userId', dashboardUser);
     formData.append('portalUser', portalUser);
     formData.append('portalPass', portalPass);
-    formData.append('interval', uploadInterval); // Send minutes directly
+    formData.append('interval', uploadInterval);
     formData.append('cycle', cycle);
     formData.append('displayValue', selectedDisplay);
     images.forEach(img => formData.append('images', img.file));
@@ -225,6 +220,25 @@ export default function App() {
     }
   };
 
+  const handleStopJob = async () => {
+    if (!jobStatus || !jobStatus.id) return;
+
+    try {
+        const response = await fetch(`https://my-uploader-backend.onrender.com/stop-job/${jobStatus.id}`, {
+            method: 'POST',
+        });
+        if (response.ok) {
+            setMessage('Cancellation request sent. The job will stop shortly.');
+        } else {
+            const result = await response.json();
+            setMessage(`Error: ${result.message || 'Could not stop the job.'}`);
+        }
+    } catch (error) {
+        console.error("Failed to send stop job request", error);
+        setMessage('Failed to send stop job request.');
+    }
+  };
+
   const handleFileChange = (e) => {
     try {
       const files = Array.from(e.target.files);
@@ -232,7 +246,7 @@ export default function App() {
 
       const newImages = files.map(file => ({
         file,
-        id: crypto.randomUUID(), // Use a truly unique ID to be safe
+        id: crypto.randomUUID(),
         preview: URL.createObjectURL(file)
       }));
       setImages(prev => [...prev, ...newImages]);
@@ -305,6 +319,7 @@ export default function App() {
     }
 
     if (appStep === 'dashboard') {
+      const isJobActive = jobStatus && (jobStatus.status === 'running' || jobStatus.status === 'queued');
       return (
         <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-8">
           <header className="text-center">
@@ -323,10 +338,17 @@ export default function App() {
               ) : (
                 <p className="text-slate-500">No active job found.</p>
               )}
+              {isJobActive && (
+                <button
+                  onClick={handleStopJob}
+                  className="mt-4 bg-red-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center mx-auto hover:bg-red-700"
+                >
+                  <StopCircle className="w-5 h-5 mr-2" /> Stop Job
+                </button>
+              )}
             </div>
           </div>
 
-          {/* NEW: Portal Status Log */}
           {jobStatus && jobStatus.logs && (
             <div className="p-4 border rounded-lg bg-gray-800 text-white font-mono text-xs">
                 <h3 className="font-sans font-semibold text-slate-300 flex items-center mb-2"><ListVideo className="w-5 h-5 mr-2 text-slate-400"/>Portal Status Log</h3>
@@ -335,11 +357,10 @@ export default function App() {
             </div>
           )}
 
-          {(!jobStatus || jobStatus.status === 'completed' || jobStatus.status === 'failed') ? (
-          <>
+          <fieldset disabled={isJobActive} className="space-y-8 disabled:opacity-60">
             <div>
               <label className="font-medium text-slate-700 block mb-1">Select a Display</label>
-              <div className="relative"><ListVideo className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/><select value={selectedDisplay} onChange={(e) => handleSelectDisplay(e.target.value, portalUser, portalPass)} className="w-full pl-10 p-3 border border-slate-300 rounded-lg appearance-none bg-white">{displayOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.text}</option>)}</select></div>
+              <div className="relative"><ListVideo className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/><select value={selectedDisplay} onChange={(e) => handleSelectDisplay(e.target.value, portalUser, portalPass)} className="w-full pl-10 p-3 border border-slate-300 rounded-lg appearance-none bg-white disabled:cursor-not-allowed">{displayOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.text}</option>)}</select></div>
             </div>
 
             <div className="p-4 border rounded-lg bg-slate-50">
@@ -351,16 +372,18 @@ export default function App() {
 
             <div>
               <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Upload New Images</h2>
-              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50"><UploadCloud className="mx-auto h-12 w-12 text-slate-400" /><input type="file" multiple onChange={handleFileChange} id="file-upload" className="hidden" accept="image/*" /><label htmlFor="file-upload" className="mt-2 block text-sm font-medium text-indigo-600 cursor-pointer">Click to browse</label></div>
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50"><UploadCloud className="mx-auto h-12 w-12 text-slate-400" /><input type="file" multiple onChange={handleFileChange} id="file-upload" className="hidden" /><label htmlFor="file-upload" className={`mt-2 block text-sm font-medium text-indigo-600 ${isJobActive ? 'cursor-not-allowed' : 'cursor-pointer'}`}>Click to browse</label></div>
               <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                 {images && images.map((item, index) => {
                   if (!item || !item.file) return null;
                   return (
-                    <div key={item.id} draggable onDragStart={() => (dragItem.current = index)} onDragEnter={() => (dragOverItem.current = index)} onDragEnd={handleDragSort} onDragOver={(e) => e.preventDefault()} className="flex items-center p-2 bg-white border rounded-lg shadow-sm cursor-grab">
+                    <div key={item.id} draggable={!isJobActive} onDragStart={() => (dragItem.current = index)} onDragEnter={() => (dragOverItem.current = index)} onDragEnd={handleDragSort} onDragOver={(e) => e.preventDefault()} className={`flex items-center p-2 bg-white border rounded-lg shadow-sm ${!isJobActive ? 'cursor-grab' : 'cursor-not-allowed'}`}>
                       <GripVertical className="w-5 h-5 text-slate-400 mr-2" />
                       <img src={item.preview} alt="preview" className="w-12 h-12 rounded-md object-cover mr-4" />
                       <span className="flex-grow text-sm font-medium text-slate-700 truncate">{item.file.name}</span>
-                      <button onClick={() => removeImage(item.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full"><X className="w-5 h-5" /></button>
+                      <button onClick={() => removeImage(item.id)} className="p-1 text-slate-400 hover:text-red-500 rounded-full" disabled={isJobActive}>
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
                   )
                 })}
@@ -371,24 +394,23 @@ export default function App() {
               <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Set Upload Interval</h2>
               <div className="flex items-center space-x-4">
                 <Clock className="w-6 h-6 text-slate-500" />
-                <input type="range" min="0" max="60" step="5" value={uploadInterval} onChange={(e) => setUploadInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" />
+                <input type="range" min="0" max="60" step="5" value={uploadInterval} onChange={(e) => setUploadInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg disabled:cursor-not-allowed" />
                 <span className="font-bold text-indigo-600 text-lg w-28 text-center">{`${uploadInterval} minutes`}</span>
               </div>
             </div>
 
             <div className="flex items-center justify-center">
-              <input type="checkbox" id="cycle" checked={cycle} onChange={(e) => setCycle(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600"/>
+              <input type="checkbox" id="cycle" checked={cycle} onChange={(e) => setCycle(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 disabled:cursor-not-allowed"/>
               <label htmlFor="cycle" className="ml-2 block text-sm text-gray-900">Cycle images (loop indefinitely)</label>
             </div>
 
-            <button onClick={handleStartAutomation} disabled={status === 'processing'} className="w-full bg-green-600 text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center hover:bg-green-700 disabled:bg-slate-400">
+            <button onClick={handleStartAutomation} disabled={status === 'processing' || isJobActive} className="w-full mt-8 bg-green-600 text-white font-bold py-4 px-4 rounded-lg flex items-center justify-center hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed">
               <span className="flex items-center justify-center">
                 {status === 'processing' ? 'Submitting...' : 'Create & Start New Job'} <PlayCircle className="ml-2"/>
               </span>
             </button>
-          </>
-          ) : null}
-
+          </fieldset>
+          
           {message && (<p className={`text-center mt-4 text-sm font-medium ${status === 'error' ? 'text-red-600' : 'text-green-600'}`}>{message}</p>)}
         </div>
       );
