@@ -120,6 +120,10 @@ export default function App() {
                 case 'portal-log':
                     setPortalLogs(prev => [...prev, data.message]);
                     break;
+                // NEW: Handle image updates
+                case 'image-update':
+                    setCurrentImageUrl(data.imageUrl);
+                    break;
                 case 'done':
                     setStatus('success');
                     setMessage(data.message);
