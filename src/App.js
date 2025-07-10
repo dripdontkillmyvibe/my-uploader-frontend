@@ -310,7 +310,15 @@ export default function App() {
           <div className="p-4 border rounded-lg bg-slate-50">
             <h2 className="font-semibold text-slate-700 flex items-center"><Activity className="w-5 h-5 mr-2 text-slate-500"/>Current Job Status</h2>
             <div className="mt-2 text-center">
-              {jobStatus?.status ? (<><p className="text-lg font-bold text-indigo-600">{jobStatus.status.toUpperCase()}</p><p className="text-sm text-slate-600">{jobStatus.progress}</p></>) : (<p className="text-slate-500">No active job found.</p>)}
+              {/* This JSX is now crash-proof */}
+              {jobStatus && typeof jobStatus.status === 'string' ? (
+                <>
+                  <p className="text-lg font-bold text-indigo-600">{jobStatus.status.toUpperCase()}</p>
+                  <p className="text-sm text-slate-600">{jobStatus.progress || ''}</p>
+                </>
+              ) : (
+                <p className="text-slate-500">No active job found.</p>
+              )}
             </div>
           </div>
 
