@@ -1,5 +1,47 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2 } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+
+// --- Error Boundary Component ---
+// This component will catch JavaScript errors anywhere in its child component tree.
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // You can also log the error to an error reporting service
+    console.error("Uncaught error:", error, errorInfo);
+    this.setState({ error: error, errorInfo: errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // You can render any custom fallback UI
+      return (
+        <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-4 text-center">
+            <AlertTriangle className="mx-auto h-16 w-16 text-red-500" />
+            <h1 className="text-2xl font-bold text-red-600">Application Error</h1>
+            <p className="text-slate-600">Something went wrong. Please copy the details below and report this issue.</p>
+            <details className="p-4 bg-slate-100 rounded-lg text-left text-sm font-mono overflow-auto">
+                <summary className="cursor-pointer font-sans font-bold">Error Details</summary>
+                {this.state.error && this.state.error.toString()}
+                <br />
+                {this.state.errorInfo && this.state.errorInfo.componentStack}
+            </details>
+        </div>
+      );
+    }
+
+    return this.props.children; 
+  }
+}
+
 
 // --- Main App Component ---
 export default function App() {
@@ -74,7 +116,7 @@ export default function App() {
     }
   }, [handleSelectDisplay]);
 
-  // Combined useEffect for initialization - THIS IS THE CORE FIX
+  // Combined useEffect for initialization
   useEffect(() => {
     const initializeApp = async () => {
       const storedUser = localStorage.getItem('dashboardUser');
@@ -86,12 +128,10 @@ export default function App() {
         if (storedPortalUser && storedPortalPass) {
           setPortalUser(storedPortalUser);
           setPortalPass(storedPortalPass);
-          // Await the result of the fetch before changing the app step
           const success = await loadDashboardData(storedPortalUser, storedPortalPass);
           if (success) {
             setAppStep('dashboard');
           } else {
-            // If fetch fails with stored creds, they might be invalid. Go to setup.
             setAppStep('portalSetup');
           }
         } else {
@@ -103,7 +143,7 @@ export default function App() {
     };
     initializeApp();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // This should only run once on mount
+  }, []);
 
   // Effect to poll for job status
   useEffect(() => {
@@ -189,7 +229,7 @@ export default function App() {
 
       const newImages = files.map(file => ({
         file,
-        id: `${file.name}-${file.lastModified}-${file.size}`, // More stable ID
+        id: `${file.name}-${file.lastModified}-${file.size}`,
         preview: URL.createObjectURL(file)
       }));
       setImages(prev => [...prev, ...newImages]);
@@ -270,7 +310,6 @@ export default function App() {
           <div className="p-4 border rounded-lg bg-slate-50">
             <h2 className="font-semibold text-slate-700 flex items-center"><Activity className="w-5 h-5 mr-2 text-slate-500"/>Current Job Status</h2>
             <div className="mt-2 text-center">
-              {/* This JSX is now crash-proof */}
               {jobStatus?.status ? (<><p className="text-lg font-bold text-indigo-600">{jobStatus.status.toUpperCase()}</p><p className="text-sm text-slate-600">{jobStatus.progress}</p></>) : (<p className="text-slate-500">No active job found.</p>)}
             </div>
           </div>
@@ -294,7 +333,7 @@ export default function App() {
               <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50"><UploadCloud className="mx-auto h-12 w-12 text-slate-400" /><input type="file" multiple onChange={handleFileChange} id="file-upload" className="hidden" accept="image/*" /><label htmlFor="file-upload" className="mt-2 block text-sm font-medium text-indigo-600 cursor-pointer">Click to browse</label></div>
               <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                 {images && images.map((item, index) => {
-                  if (!item || !item.file) return null; // Guard clause to prevent rendering errors
+                  if (!item || !item.file) return null;
                   return (
                     <div key={item.id || index} draggable onDragStart={() => (dragItem.current = index)} onDragEnter={() => (dragOverItem.current = index)} onDragEnd={handleDragSort} onDragOver={(e) => e.preventDefault()} className="flex items-center p-2 bg-white border rounded-lg shadow-sm cursor-grab">
                       <GripVertical className="w-5 h-5 text-slate-400 mr-2" />
@@ -331,7 +370,9 @@ export default function App() {
 
   return (
     <div className="bg-slate-100 min-h-screen font-sans flex items-center justify-center p-4">
-      {renderContent()}
+      <ErrorBoundary>
+        {renderContent()}
+      </ErrorBoundary>
     </div>
   );
 }
