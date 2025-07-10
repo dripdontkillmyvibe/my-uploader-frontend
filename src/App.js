@@ -60,7 +60,8 @@ export default function App() {
   const [currentImageUrl, setCurrentImageUrl] = useState(null);
 
   const [images, setImages] = useState([]);
-  const [interval, setInterval] = useState(30);
+  // FIX: Renamed state to avoid collision with window.setInterval
+  const [uploadInterval, setUploadInterval] = useState(30);
   const [cycle, setCycle] = useState(false);
   
   const [jobStatus, setJobStatus] = useState(null);
@@ -204,7 +205,7 @@ export default function App() {
     formData.append('userId', dashboardUser);
     formData.append('portalUser', portalUser);
     formData.append('portalPass', portalPass);
-    formData.append('interval', interval); // Send minutes directly
+    formData.append('interval', uploadInterval); // Send minutes directly
     formData.append('cycle', cycle);
     formData.append('displayValue', selectedDisplay);
     images.forEach(img => formData.append('images', img.file));
@@ -368,7 +369,11 @@ export default function App() {
 
             <div>
               <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Set Upload Interval</h2>
-              <div className="flex items-center space-x-4"><Clock className="w-6 h-6 text-slate-500" /><input type="range" min="0" max="60" step="5" value={interval} onChange={(e) => setInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" /><span className="font-bold text-indigo-600 text-lg w-28 text-center">{`${interval} minutes`}</span></div>
+              <div className="flex items-center space-x-4">
+                <Clock className="w-6 h-6 text-slate-500" />
+                <input type="range" min="0" max="60" step="5" value={uploadInterval} onChange={(e) => setUploadInterval(e.target.value)} className="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" />
+                <span className="font-bold text-indigo-600 text-lg w-28 text-center">{`${uploadInterval} minutes`}</span>
+              </div>
             </div>
 
             <div className="flex items-center justify-center">
