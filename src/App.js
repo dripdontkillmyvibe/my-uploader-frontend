@@ -41,7 +41,7 @@ export default function App() {
     } catch (error) { console.error("Could not fetch display image", error); }
   }, []);
 
-  const handleFetchDisplays = useCallback(async (user, pass) => {
+  const handleFetchAndSetDisplays = useCallback(async (user, pass) => {
     setStatus('processing');
     setMessage('Logging in and fetching your displays...');
     try {
@@ -87,7 +87,7 @@ export default function App() {
           setPortalUser(storedPortalUser);
           setPortalPass(storedPortalPass);
           // Await the result of the fetch before changing the app step
-          const success = await handleFetchDisplays(storedPortalUser, storedPortalPass);
+          const success = await handleFetchAndSetDisplays(storedPortalUser, storedPortalPass);
           if (success) {
             setAppStep('dashboard');
           } else {
@@ -141,7 +141,7 @@ export default function App() {
       setMessage('Please enter portal credentials.');
       return;
     }
-    const success = await handleFetchDisplays(portalUser, portalPass);
+    const success = await handleFetchAndSetDisplays(portalUser, portalPass);
     if (success) {
       localStorage.setItem(`${dashboardUser}_portalUser`, portalUser);
       localStorage.setItem(`${dashboardUser}_portalPass`, portalPass);
