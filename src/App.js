@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2 } from 'lucide-react';
 
 // --- Main App Component ---
 export default function App() {
   // --- State Management ---
-  const [appStep, setAppStep] = useState('login'); // login, portalSetup, dashboard
+  const [appStep, setAppStep] = useState('loading'); // loading, login, portalSetup, dashboard
   const [dashboardUser, setDashboardUser] = useState('');
   const [inputUser, setInputUser] = useState('');
   
@@ -41,7 +41,7 @@ export default function App() {
     } catch (error) { console.error("Could not fetch display image", error); }
   }, []);
 
-  const handleFetchDisplays = useCallback(async (user, pass, saveCredentials = false) => {
+  const handleFetchDisplays = useCallback(async (user, pass) => {
     setStatus('processing');
     setMessage('Logging in and fetching your displays...');
     try {
@@ -63,43 +63,44 @@ export default function App() {
         await handleSelectDisplay(options[0].value, user, pass);
       }
       
-      if (saveCredentials) {
-        // This logic is now part of the initial useEffect
-        localStorage.setItem(`${dashboardUser}_portalUser`, user);
-        localStorage.setItem(`${dashboardUser}_portalPass`, pass);
-      }
-      
-      // Only proceed to dashboard after everything is fetched
-      setAppStep('dashboard');
       setStatus('idle');
       setMessage('');
+      return true; // Indicate success
 
     } catch (error) {
       setStatus('error');
       setMessage(error.message);
-      // If fetching fails during setup, stay on the setup screen
-      if (saveCredentials) {
-        setAppStep('portalSetup');
-      }
+      return false; // Indicate failure
     }
-  }, [dashboardUser, handleSelectDisplay]);
+  }, [handleSelectDisplay]);
 
   // Combined useEffect for initialization
   useEffect(() => {
-    const storedUser = localStorage.getItem('dashboardUser');
-    if (storedUser) {
-      setDashboardUser(storedUser);
-      const storedPortalUser = localStorage.getItem(`${storedUser}_portalUser`);
-      const storedPortalPass = localStorage.getItem(`${storedUser}_portalPass`);
-      if (storedPortalUser && storedPortalPass) {
-        setPortalUser(storedPortalUser);
-        setPortalPass(storedPortalPass);
-        // Directly fetch displays and let that function handle moving to the dashboard
-        handleFetchDisplays(storedPortalUser, storedPortalPass);
+    const initializeApp = async () => {
+      const storedUser = localStorage.getItem('dashboardUser');
+      if (storedUser) {
+        setDashboardUser(storedUser);
+        const storedPortalUser = localStorage.getItem(`${storedUser}_portalUser`);
+        const storedPortalPass = localStorage.getItem(`${storedUser}_portalPass`);
+        
+        if (storedPortalUser && storedPortalPass) {
+          setPortalUser(storedPortalUser);
+          setPortalPass(storedPortalPass);
+          const success = await handleFetchDisplays(storedPortalUser, storedPortalPass);
+          if (success) {
+            setAppStep('dashboard');
+          } else {
+            // If fetch fails with stored creds, they might be invalid. Go to setup.
+            setAppStep('portalSetup');
+          }
+        } else {
+          setAppStep('portalSetup');
+        }
       } else {
-        setAppStep('portalSetup');
+        setAppStep('login');
       }
-    }
+    };
+    initializeApp();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // This should only run once on mount
 
@@ -139,7 +140,12 @@ export default function App() {
       setMessage('Please enter portal credentials.');
       return;
     }
-    await handleFetchDisplays(portalUser, portalPass, true);
+    const success = await handleFetchDisplays(portalUser, portalPass);
+    if (success) {
+      localStorage.setItem(`${dashboardUser}_portalUser`, portalUser);
+      localStorage.setItem(`${dashboardUser}_portalPass`, portalPass);
+      setAppStep('dashboard');
+    }
   };
 
   const handleStartAutomation = async () => {
@@ -206,6 +212,15 @@ export default function App() {
   };
   
   const renderContent = () => {
+    if (appStep === 'loading') {
+        return (
+            <div className="flex flex-col items-center justify-center text-slate-500">
+                <Loader2 className="w-12 h-12 animate-spin" />
+                <p className="mt-4 text-lg">Initializing Application...</p>
+            </div>
+        );
+    }
+
     if (appStep === 'login') {
       return (
         <div className="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-6">
@@ -222,7 +237,7 @@ export default function App() {
       );
     }
 
-    if (appStep === 'portalSetup' || (appStep === 'dashboard' && status === 'processing')) {
+    if (appStep === 'portalSetup') {
       return (
         <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-6">
           <h1 className="text-2xl font-bold text-center text-slate-800">Portal Setup</h1>
