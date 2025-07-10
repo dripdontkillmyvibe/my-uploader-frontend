@@ -52,26 +52,38 @@ export default function App() {
       });
       const options = await response.json();
       if (!response.ok) throw new Error(options.message || 'Failed to fetch.');
-      if (options.length === 0) { setStatus('error'); setMessage('No displays found for this user.'); return; }
+      
+      // Defensive check to prevent crash on unexpected API response
+      if (!Array.isArray(options) || options.length === 0) { 
+        setStatus('error'); 
+        setMessage('No displays found for this user. Please check portal credentials.'); 
+        setDisplayOptions([]);
+        return; 
+      }
       
       setDisplayOptions(options);
-      await handleSelectDisplay(options[0].value, user, pass);
+      // Safely select the first display
+      if (options[0] && options[0].value) {
+        await handleSelectDisplay(options[0].value, user, pass);
+      }
       
       if (saveCredentials) {
-        // This logic is now part of the initial useEffect
         localStorage.setItem(`${dashboardUser}_portalUser`, user);
         localStorage.setItem(`${dashboardUser}_portalPass`, pass);
-        setAppStep('dashboard');
       }
+      
+      // Only proceed to dashboard after everything is fetched
+      setAppStep('dashboard');
       setStatus('idle');
       setMessage('');
+
     } catch (error) {
       setStatus('error');
       setMessage(error.message);
     }
   }, [dashboardUser, handleSelectDisplay]);
 
-  // Check for logged-in user on initial load
+  // Combined useEffect for initialization
   useEffect(() => {
     const storedUser = localStorage.getItem('dashboardUser');
     if (storedUser) {
@@ -81,20 +93,14 @@ export default function App() {
       if (storedPortalUser && storedPortalPass) {
         setPortalUser(storedPortalUser);
         setPortalPass(storedPortalPass);
-        // Set the step to dashboard. The other useEffect will handle the data fetch.
-        setAppStep('dashboard');
+        // Directly fetch displays and let that function handle moving to the dashboard
+        handleFetchDisplays(storedPortalUser, storedPortalPass);
       } else {
         setAppStep('portalSetup');
       }
     }
-  }, []);
-
-  // Effect to fetch displays when the dashboard becomes active
-  useEffect(() => {
-    if (appStep === 'dashboard' && portalUser && portalPass) {
-      handleFetchDisplays(portalUser, portalPass);
-    }
-  }, [appStep, portalUser, portalPass, handleFetchDisplays]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // This should only run once on mount
 
   // Effect to poll for job status
   useEffect(() => {
@@ -132,7 +138,6 @@ export default function App() {
       setMessage('Please enter portal credentials.');
       return;
     }
-    // Pass 'true' to indicate that credentials should be saved after successful fetch
     await handleFetchDisplays(portalUser, portalPass, true);
   };
 
