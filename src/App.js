@@ -48,7 +48,6 @@ const ImageEditor = ({ image, onSave, onCancel }) => {
     const [orientation, setOrientation] = useState('landscape');
     const imgRef = useRef(null);
 
-    // FIX: Reset crop state when the image prop changes to avoid stale state
     useEffect(() => {
         setCrop({ aspect: 2560 / 1440 });
         setCompletedCrop(null);
@@ -351,9 +350,14 @@ export default function App() {
 
   const handleSaveCroppedImage = (blob) => {
     const newFile = new File([blob], editingImage.file.name, { type: 'image/png' });
+    const newPreviewUrl = URL.createObjectURL(newFile);
+    
+    // Revoke the old object URL to prevent memory leaks
+    URL.revokeObjectURL(editingImage.preview);
+
     const newImages = images.map(img => 
         img.id === editingImage.id 
-        ? { ...img, file: newFile, preview: URL.createObjectURL(newFile) } 
+        ? { ...img, file: newFile, preview: newPreviewUrl } 
         : img
     );
     setImages(newImages);
@@ -413,7 +417,8 @@ export default function App() {
       const isJobActive = jobStatus && (jobStatus.status === 'running' || jobStatus.status === 'queued');
       return (
         <>
-          {editingImage && <ImageEditor image={editingImage} onSave={handleSaveCroppedImage} onCancel={() => setEditingImage(null)} />}
+          {/* FIX: Add a unique key to the ImageEditor to force re-mounting on image change */}
+          {editingImage && <ImageEditor key={editingImage.id} image={editingImage} onSave={handleSaveCroppedImage} onCancel={() => setEditingImage(null)} />}
           <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-8">
             <header className="text-center">
               <h1 className="text-4xl font-bold text-slate-800">Automation Dashboard</h1>
