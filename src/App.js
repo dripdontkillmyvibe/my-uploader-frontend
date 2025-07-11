@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2, AlertTriangle, StopCircle, Crop, RectangleHorizontal, RectangleVertical, TrainFront } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2, AlertTriangle, StopCircle, Crop, RectangleHorizontal, RectangleVertical } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 
 // --- Error Boundary Component ---
@@ -148,8 +148,6 @@ export default function App() {
   const [message, setMessage] = useState('');
   
   const [editingImage, setEditingImage] = useState(null);
-  const [isWidgetLoading, setIsWidgetLoading] = useState(false);
-  const subwayWidgetId = 'subway-widget-live';
 
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
@@ -251,7 +249,8 @@ export default function App() {
     return () => {
       images.forEach(image => URL.revokeObjectURL(image.preview));
     };
-  }, []); // Empty dependency array ensures this runs only once on unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array is intentional to run only on unmount.
 
   const handleDashboardLogin = () => {
     if (inputUser) {
@@ -384,54 +383,6 @@ export default function App() {
     setEditingImage(null);
   };
   
-  const addSubwayWidget = useCallback(async () => {
-    setIsWidgetLoading(true);
-    try {
-        const response = await fetch('https://my-uploader-backend.onrender.com/api/subway-widget');
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to fetch subway widget.');
-        }
-        const blob = await response.blob();
-        const file = new File([blob], "subway-schedule.png", { type: 'image/png' });
-        const newImage = {
-            file,
-            id: subwayWidgetId,
-            preview: URL.createObjectURL(file),
-            isWidget: true,
-        };
-
-        setImages(prev => {
-            const existingIndex = prev.findIndex(img => img.id === subwayWidgetId);
-            if (existingIndex > -1) {
-                URL.revokeObjectURL(prev[existingIndex].preview);
-                const updatedImages = [...prev];
-                updatedImages[existingIndex] = newImage;
-                return updatedImages;
-            }
-            return [...prev, newImage];
-        });
-
-    } catch (error) {
-        console.error("Error adding subway widget:", error);
-        setMessage(`Error: ${error.message}`);
-    } finally {
-        setIsWidgetLoading(false);
-    }
-  }, [subwayWidgetId]);
-
-  // Effect for auto-updating the subway widget
-  useEffect(() => {
-      const hasWidget = images.some(img => img.id === subwayWidgetId);
-      if (hasWidget) {
-          const widgetInterval = setInterval(() => {
-              console.log('Auto-updating subway widget...');
-              addSubwayWidget();
-          }, 15 * 60 * 1000); // 15 minutes
-          return () => clearInterval(widgetInterval);
-      }
-  }, [images, addSubwayWidget, subwayWidgetId]);
-
   const renderContent = () => {
     if (appStep === 'loading') {
         return (
@@ -536,15 +487,7 @@ export default function App() {
               </div>
 
               <div>
-                <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Widgets</h2>
-                <button onClick={addSubwayWidget} disabled={isWidgetLoading} className="w-full bg-brand-blue text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center hover:opacity-90 disabled:bg-slate-400">
-                    {isWidgetLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin"/> : <TrainFront className="w-5 h-5 mr-2"/>}
-                    {images.some(img => img.id === subwayWidgetId) ? 'Update Subway Schedule' : 'Add Subway Schedule Widget'}
-                </button>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Upload Queue</h2>
+                <h2 className="text-xl font-semibold text-slate-700 flex items-center mb-4">Upload New Images</h2>
                 <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50"><UploadCloud className="mx-auto h-12 w-12 text-slate-400" /><input type="file" multiple onChange={handleFileChange} id="file-upload" className="hidden" /><label htmlFor="file-upload" className={`mt-2 block text-sm font-medium text-brand-blue ${isJobActive ? 'cursor-not-allowed' : 'cursor-pointer'}`}>Click to browse</label></div>
                 <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
                   {images && images.map((item, index) => {
@@ -554,11 +497,9 @@ export default function App() {
                         <GripVertical className="w-5 h-5 text-slate-400 mr-2" />
                         <img src={item.preview} alt="preview" className="w-12 h-12 rounded-md object-cover mr-4" />
                         <span className="flex-grow text-sm font-medium text-slate-700 truncate">{item.file.name}</span>
-                        {!item.isWidget && (
-                            <button onClick={() => setEditingImage(item)} className="p-1 text-slate-400 hover:text-brand-blue rounded-full mr-2" disabled={isJobActive}>
-                                <Crop className="w-5 h-5" />
-                            </button>
-                        )}
+                        <button onClick={() => setEditingImage(item)} className="p-1 text-slate-400 hover:text-brand-blue rounded-full mr-2" disabled={isJobActive}>
+                          <Crop className="w-5 h-5" />
+                        </button>
                         <button onClick={() => removeImage(item.id)} className="p-1 text-slate-400 hover:text-brand-red rounded-full" disabled={isJobActive}>
                           <X className="w-5 h-5" />
                         </button>
