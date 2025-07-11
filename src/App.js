@@ -249,7 +249,8 @@ export default function App() {
     return () => {
       images.forEach(image => URL.revokeObjectURL(image.preview));
     };
-  }, []); // Empty dependency array ensures this runs only once on unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array is intentional to run only on unmount.
 
   const handleDashboardLogin = () => {
     if (inputUser) {
