@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2, AlertTriangle, StopCircle, Crop } from 'lucide-react';
+import { User, KeyRound, UploadCloud, GripVertical, Clock, PlayCircle, X, LogIn, Activity, ListVideo, ImageIcon, ChevronRight, Loader2, AlertTriangle, StopCircle, Crop, RectangleHorizontal, RectangleVertical } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
 
 // --- Error Boundary Component ---
@@ -45,15 +45,24 @@ class ErrorBoundary extends React.Component {
 const ImageEditor = ({ image, onSave, onCancel }) => {
     const [crop, setCrop] = useState({ aspect: 2560 / 1440 });
     const [completedCrop, setCompletedCrop] = useState(null);
+    const [orientation, setOrientation] = useState('landscape');
     const imgRef = useRef(null);
+
+    // FIX: Reset crop state when the image prop changes to avoid stale state
+    useEffect(() => {
+        setCrop({ aspect: 2560 / 1440 });
+        setCompletedCrop(null);
+        setOrientation('landscape');
+    }, [image]);
+
 
     const handleSave = async () => {
         if (completedCrop?.width && completedCrop?.height && imgRef.current) {
             const canvas = document.createElement('canvas');
             const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
             const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-            canvas.width = completedCrop.width;
-            canvas.height = completedCrop.height;
+            canvas.width = completedCrop.width * scaleX;
+            canvas.height = completedCrop.height * scaleY;
             const ctx = canvas.getContext('2d');
 
             ctx.drawImage(
@@ -64,8 +73,8 @@ const ImageEditor = ({ image, onSave, onCancel }) => {
                 completedCrop.height * scaleY,
                 0,
                 0,
-                completedCrop.width,
-                completedCrop.height
+                canvas.width,
+                canvas.height
             );
             
             canvas.toBlob((blob) => {
@@ -74,13 +83,30 @@ const ImageEditor = ({ image, onSave, onCancel }) => {
         }
     };
 
+    const toggleOrientation = (newOrientation) => {
+        setOrientation(newOrientation);
+        if (newOrientation === 'landscape') {
+            setCrop({ aspect: 2560 / 1440 });
+        } else {
+            setCrop({ aspect: 1440 / 2560 });
+        }
+    };
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-3xl w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full">
                 <h2 className="text-2xl font-bold mb-4">Crop & Resize Image</h2>
-                <div className="max-h-[60vh] overflow-y-auto">
-                    <ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)} aspect={2560 / 1440}>
-                        <img ref={imgRef} src={image.preview} alt="Crop preview" />
+                <div className="flex justify-center space-x-4 mb-4">
+                    <button onClick={() => toggleOrientation('landscape')} className={`flex items-center px-4 py-2 rounded-lg font-semibold ${orientation === 'landscape' ? 'bg-brand-blue text-white' : 'bg-slate-200'}`}>
+                        <RectangleHorizontal className="mr-2 h-5 w-5"/> Landscape (2560x1440)
+                    </button>
+                    <button onClick={() => toggleOrientation('portrait')} className={`flex items-center px-4 py-2 rounded-lg font-semibold ${orientation === 'portrait' ? 'bg-brand-blue text-white' : 'bg-slate-200'}`}>
+                        <RectangleVertical className="mr-2 h-5 w-5"/> Portrait (1440x2560)
+                    </button>
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto flex justify-center">
+                    <ReactCrop crop={crop} onChange={c => setCrop(c)} onComplete={c => setCompletedCrop(c)} aspect={orientation === 'landscape' ? 2560 / 1440 : 1440 / 2560}>
+                        <img ref={imgRef} src={image.preview} alt="Crop preview" style={{maxHeight: '55vh'}} />
                     </ReactCrop>
                 </div>
                 <div className="flex justify-end space-x-4 mt-4">
