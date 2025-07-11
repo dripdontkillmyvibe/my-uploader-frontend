@@ -60,8 +60,15 @@ const ImageEditor = ({ image, onSave, onCancel }) => {
             const canvas = document.createElement('canvas');
             const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
             const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-            canvas.width = completedCrop.width * scaleX;
-            canvas.height = completedCrop.height * scaleY;
+            
+            if (orientation === 'portrait') {
+                canvas.width = 1440;
+                canvas.height = 2560;
+            } else {
+                canvas.width = 2560;
+                canvas.height = 1440;
+            }
+
             const ctx = canvas.getContext('2d');
 
             ctx.drawImage(
@@ -237,12 +244,12 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, [appStep, dashboardUser]);
 
-  // Effect to clean up image preview URLs to prevent memory leaks
+  // Effect to clean up ALL image preview URLs when the component unmounts
   useEffect(() => {
     return () => {
       images.forEach(image => URL.revokeObjectURL(image.preview));
     };
-  }, [images]);
+  }, []); // Empty dependency array ensures this runs only once on unmount.
 
   const handleDashboardLogin = () => {
     if (inputUser) {
@@ -336,7 +343,15 @@ export default function App() {
     }
   };
 
-  const removeImage = (id) => setImages(prev => prev.filter(image => image.id !== id));
+  const removeImage = (id) => {
+    setImages(prevImages => {
+      const imageToRemove = prevImages.find(img => img.id === id);
+      if (imageToRemove) {
+        URL.revokeObjectURL(imageToRemove.preview);
+      }
+      return prevImages.filter(image => image.id !== id);
+    });
+  };
 
   const handleDragSort = () => {
     let _images = [...images];
@@ -352,15 +367,18 @@ export default function App() {
     const newFile = new File([blob], editingImage.file.name, { type: 'image/png' });
     const newPreviewUrl = URL.createObjectURL(newFile);
     
-    // Revoke the old object URL to prevent memory leaks
-    URL.revokeObjectURL(editingImage.preview);
-
-    const newImages = images.map(img => 
+    setImages(prevImages => {
+      const imageToUpdate = prevImages.find(img => img.id === editingImage.id);
+      if (imageToUpdate) {
+        URL.revokeObjectURL(imageToUpdate.preview);
+      }
+      return prevImages.map(img => 
         img.id === editingImage.id 
         ? { ...img, file: newFile, preview: newPreviewUrl } 
         : img
-    );
-    setImages(newImages);
+      );
+    });
+
     setEditingImage(null);
   };
   
@@ -417,7 +435,6 @@ export default function App() {
       const isJobActive = jobStatus && (jobStatus.status === 'running' || jobStatus.status === 'queued');
       return (
         <>
-          {/* FIX: Add a unique key to the ImageEditor to force re-mounting on image change */}
           {editingImage && <ImageEditor key={editingImage.id} image={editingImage} onSave={handleSaveCroppedImage} onCancel={() => setEditingImage(null)} />}
           <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-8 space-y-8">
             <header className="text-center">
